@@ -138,6 +138,8 @@ class MyClient(discord.Client):
             self.expression = "panda"
         elif str(message.author) == "lo0twig":
             self.expression = "super mario"
+        elif str(message.author) == "hanarius":
+            self.expression = "grumpy old man"
         else:
             self.expression = "cat"
 
