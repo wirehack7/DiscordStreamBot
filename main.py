@@ -146,11 +146,11 @@ class MyClient(discord.Client):
         user = message.author
 
         if isinstance(message.channel, discord.channel.DMChannel):
-            logger.info(f"Recieved DM from {message.author}, sending {self.expression} GIF")
+            logger.info(f"Received DM from {message.author}, sending {self.expression} GIF")
             #await self.g.screensaver('cat')
 
             try:
-                await channel.send(f"Hey hey {message.author}\n{self.g.screensaver(self.expression).media_url}")
+                await channel.send(f"Hey hey {user.display_name}\n{self.g.screensaver(self.expression).media_url}")
             except Exception as e:
                 logger.error(f"Couldn't send message: {e}")
 
