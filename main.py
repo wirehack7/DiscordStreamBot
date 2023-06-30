@@ -8,8 +8,6 @@ import logging
 import aiofiles
 import aiofiles.os
 import giphypop
-import random
-import string
 
 
 class MyClient(discord.Client):
