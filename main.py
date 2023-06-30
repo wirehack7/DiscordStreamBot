@@ -108,10 +108,9 @@ class MyClient(discord.Client):
                     message,
                     suppress_embeds=True,
                     file=discord.File(r'./stream_thumb.jpg'))
+                logger.info("Sent chat message")
             except Exception as e:
                 logger.error(f"Couldn't send message: {e}")
-
-            logger.info("Sent chat message")
 
             await aiofiles.os.remove('./stream_thumb.jpg')
             self.live = True
