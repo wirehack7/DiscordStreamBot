@@ -5,6 +5,8 @@ from discord.ext import tasks
 import aiohttp
 import asyncio
 import logging
+import aiofiles
+import aiofiles.os
 
 logging.basicConfig(
     encoding='utf-8',
@@ -25,6 +27,7 @@ class MyClient(discord.Client):
         self.bearer_token = 0
         self.stream_data = []
         self.live = False
+        self.dimensions = {"{width}":"500","{height}":"281"}
 
     async def twitch_get_bearer(self, client_id: str, client_secret: str):
         logging.info('Getting Twitch bearer token...')
@@ -89,8 +92,23 @@ class MyClient(discord.Client):
         logging.debug(self.stream_data)
         channel = self.get_channel(int(os.getenv('CHANNEL')))
         if len(self.stream_data) > 0 and self.live is not True:
+            image_url = self.stream_data[0]['thumbnail_url']
+            for word, dimension in self.dimensions.items():
+                image_url = image_url.replace(word, dimension)
+            async with aiohttp.ClientSession() as session:
+                async with session.get(image_url) as r:
+                    if r.status == 200:
+                        f = await aiofiles.open('./stream_thumb.jpg', mode='wb')
+                        await f.write(await r.read())
+                        await f.close()
+                    await session.close()
             message = f"\U0001F534 Ich bin live!\n**{self.stream_data[0]['title']}**\nhttps://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
-            await channel.send(message)
+            await channel.send(
+                message,
+                suppress_embeds=True,
+                file=discord.File(r'./stream_thumb.jpg'))
+
+            await aiofiles.os.remove('./stream_thumb.jpg')
             self.live = True
         elif len(self.stream_data) == 0:
             self.live = False
