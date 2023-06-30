@@ -103,10 +103,13 @@ class MyClient(discord.Client):
                         await f.close()
                     await session.close()
             message = f"\U0001F534 Ich bin live!\n**{self.stream_data[0]['title']}**\nhttps://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
-            await channel.send(
-                message,
-                suppress_embeds=True,
-                file=discord.File(r'./stream_thumb.jpg'))
+            try:
+                await channel.send(
+                    message,
+                    suppress_embeds=True,
+                    file=discord.File(r'./stream_thumb.jpg'))
+            except Exception as e:
+                logger.error(f"Couldn't send message: {e}")
 
             logger.info("Sent chat message")
 
@@ -150,8 +153,7 @@ class MyClient(discord.Client):
             try:
                 await channel.send(f"Hey hey {message.author}\n{self.g.screensaver(self.expression).media_url}")
             except Exception as e:
-                logger.error(f"Couldn't upload image: {e}")
-                await channel.send(f"Hey hey {user.display_name}\nCouldn't send you cute image, try again :(")
+                logger.error(f"Couldn't send message: {e}")
 
 
 if __name__ == "__main__":
