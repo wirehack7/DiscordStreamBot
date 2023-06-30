@@ -92,9 +92,14 @@ class MyClient(discord.Client):
         logging.debug(self.stream_data)
         channel = self.get_channel(int(os.getenv('CHANNEL')))
         if len(self.stream_data) > 0 and self.live is not True:
+            logging.info(f"Found stream with title {self.stream_data[0]['title']}")
+
+            # Create thumbnail url
             image_url = self.stream_data[0]['thumbnail_url']
+            # replace dimension placeholders in URL
             for word, dimension in self.dimensions.items():
                 image_url = image_url.replace(word, dimension)
+            # Try to download thumbnail
             async with aiohttp.ClientSession() as session:
                 async with session.get(image_url) as r:
                     if r.status == 200:
@@ -107,6 +112,7 @@ class MyClient(discord.Client):
                 message,
                 suppress_embeds=True,
                 file=discord.File(r'./stream_thumb.jpg'))
+            logging.info("Sent chat message")
 
             await aiofiles.os.remove('./stream_thumb.jpg')
             self.live = True
