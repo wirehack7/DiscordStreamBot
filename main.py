@@ -9,7 +9,6 @@ import aiofiles
 import aiofiles.os
 import giphypop
 import datetime
-import pytz
 
 
 class MyClient(discord.Client):
@@ -24,7 +23,6 @@ class MyClient(discord.Client):
         self.dimensions = {"{width}": "500", "{height}": "281"}
         self.g = giphypop.Giphy(api_key=os.getenv('GIPHY'))
         self.expression = "cat"
-        self.timezone = pytz.timezone("Europe/Berlin")
 
     async def twitch_get_bearer(self, client_id: str, client_secret: str):
         logger.info('Getting Twitch bearer token...')
@@ -164,30 +162,33 @@ class MyClient(discord.Client):
                 await message.channel.send(f"Hey hey {message.author.display_name}\n{self.g.screensaver(self.expression).media_url}")
             except Exception as e:
                 logger.error(f"Couldn't send message: {e}")
+
+        # Diablo IV boss info
         elif isinstance(message.channel, discord.channel.Thread):
             if message.channel.id == int(os.getenv('D4CHANNEL')) \
                     and message.channel.locked is False \
-                    and message.channel.archived is False:
-                if message.content == "!boss":
-                    async with aiohttp.ClientSession() as session:
-                        headers = {
-                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-                        }
-                        async with session.get('https://d4armory.io/api/events/recent') as r:
-                            if r.status != 200:
-                                await session.close()
-                                logger.error(f"Couldn't retrieve boss info, got status: {r.status}")
-                            else:
-                                js = await r.json()
-                                await session.close()
-                                await message.channel.send(
-                                    f"Nächster Bossspawn:\n" +
-                                    f"**{js['boss']['expectedName']}** in {js['boss']['zone']}/{js['boss']['territory']} um " +
-                                    f"**{datetime.datetime.fromtimestamp(js['boss']['expected']).strftime('%H:%M:%S')}**\n" +
-                                    f"Danach:\n" +
-                                    f"**{js['boss']['nextExpectedName']}** um "
-                                    f"**{datetime.datetime.fromtimestamp(js['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
-                                )
+                    and message.channel.archived is False \
+                    and message.content == "!boss":
+                async with aiohttp.ClientSession() as session:
+                    headers = {
+                        # let's camouflage ourself
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+                    }
+                    async with session.get('https://d4armory.io/api/events/recent', headers=headers) as r:
+                        if r.status != 200:
+                            await session.close()
+                            logger.error(f"Couldn't retrieve boss info, got status: {r.status}")
+                        else:
+                            js = await r.json()
+                            await session.close()
+                            await message.channel.send(
+                                f"Nächster Bossspawn:\n" +
+                                f"**{js['boss']['expectedName']}** in {js['boss']['zone']}/{js['boss']['territory']} um " +
+                                f"**{datetime.datetime.fromtimestamp(js['boss']['expected']).strftime('%H:%M:%S')}**\n" +
+                                f"Danach:\n" +
+                                f"**{js['boss']['nextExpectedName']}** um "
+                                f"**{datetime.datetime.fromtimestamp(js['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
+                            )
 
 
 if __name__ == "__main__":
