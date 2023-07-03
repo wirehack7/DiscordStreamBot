@@ -8,6 +8,8 @@ import logging
 import aiofiles
 import aiofiles.os
 import giphypop
+import datetime
+import pytz
 
 
 class MyClient(discord.Client):
@@ -22,6 +24,7 @@ class MyClient(discord.Client):
         self.dimensions = {"{width}": "500", "{height}": "281"}
         self.g = giphypop.Giphy(api_key=os.getenv('GIPHY'))
         self.expression = "cat"
+        self.timezone = pytz.timezone("Europe/Berlin")
 
     async def twitch_get_bearer(self, client_id: str, client_secret: str):
         logger.info('Getting Twitch bearer token...')
@@ -78,9 +81,17 @@ class MyClient(discord.Client):
         self.my_background_task.start()
 
     async def on_ready(self):
-        await self.change_presence(status=discord.Status.invisible)
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
         logger.info('------.v0.4')
+        await self.change_presence(status=discord.Status.invisible)
+        for guild in self.guilds:
+            if int(os.getenv('D4SERVER')) == guild.id:
+                logger.info(f"I'm in server {guild.name}!")
+                channel = await self.fetch_channel(int(os.getenv('D4CHANNEL')))
+                try:
+                    await channel.join()
+                except Exception as e:
+                    print(f"Cannot join thread: {e}")
 
     @tasks.loop(seconds=60)  # task runs every 60 seconds
     async def my_background_task(self):
@@ -146,18 +157,37 @@ class MyClient(discord.Client):
         else:
             self.expression = "cat"
 
-        channel = message.channel
-        content = message.content
-        user = message.author
-
         if isinstance(message.channel, discord.channel.DMChannel):
             logger.info(f"Received DM from {message.author}, sending {self.expression} GIF")
-            #await self.g.screensaver('cat')
 
             try:
-                await channel.send(f"Hey hey {user.display_name}\n{self.g.screensaver(self.expression).media_url}")
+                await message.channel.send(f"Hey hey {message.author.display_name}\n{self.g.screensaver(self.expression).media_url}")
             except Exception as e:
                 logger.error(f"Couldn't send message: {e}")
+        elif isinstance(message.channel, discord.channel.Thread):
+            if message.channel.id == int(os.getenv('D4CHANNEL')) \
+                    and message.channel.locked is False \
+                    and message.channel.archived is False:
+                if message.content == "!boss":
+                    async with aiohttp.ClientSession() as session:
+                        headers = {
+                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+                        }
+                        async with session.get('https://d4armory.io/api/events/recent') as r:
+                            if r.status != 200:
+                                await session.close()
+                                logger.error(f"Couldn't retrieve boss info, got status: {r.status}")
+                            else:
+                                js = await r.json()
+                                await session.close()
+                                await message.channel.send(
+                                    f"Nächster Bossspawn:\n" +
+                                    f"**{js['boss']['expectedName']}** in {js['boss']['zone']}/{js['boss']['territory']} um " +
+                                    f"**{datetime.datetime.fromtimestamp(js['boss']['expected']).strftime('%H:%M:%S')}**\n" +
+                                    f"Danach:\n" +
+                                    f"**{js['boss']['nextExpectedName']}** um "
+                                    f"**{datetime.datetime.fromtimestamp(js['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
+                                )
 
 
 if __name__ == "__main__":
@@ -170,5 +200,7 @@ if __name__ == "__main__":
     load_dotenv()
 
     TOKEN = os.getenv('DISCORD_TOKEN')
-    client = MyClient(intents=discord.Intents.default())
+    intents = discord.Intents.default()
+    intents.message_content = True
+    client = MyClient(intents=intents)
     client.run(TOKEN)
