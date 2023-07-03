@@ -112,7 +112,7 @@ class MyClient(discord.Client):
                         await f.write(await r.read())
                         await f.close()
                     await session.close()
-            message = f"\U0001F534 Ich bin live!\n**{self.stream_data[0]['title']}**\nhttps://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
+            message = f"\U0001F534 Ich bin live! <:mariothumb:992329728008671323>\n**{self.stream_data[0]['title']}**\nhttps://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
             try:
                 await self.change_presence(status=discord.Status.online)
                 await channel.send(
@@ -193,7 +193,7 @@ class MyClient(discord.Client):
                                 )
                             elif message.content == "!legion":
                                 legion_active = ""
-                                if int(datetime.time().strftime('%s')) < int(js['legion']['timestamp']): legion_active = " (aktiv??? <a:lrCheck:1067164823026139228>)"
+                                if int(datetime.time().strftime('%s')) < int(js['legion']['timestamp']): legion_active = " (aktiv??? <:lrCheck:1067164823026139228>)"
                                 await message.channel.send(
                                     f"Nächste Legion:\n" +
                                     f"In {js['legion']['zone']}/{js['legion']['territory']} um " +
