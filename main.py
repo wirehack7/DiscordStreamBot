@@ -26,6 +26,19 @@ class MyClient(discord.Client):
         self.expression = "cat"
         self.thread = 0
 
+    async def on_ready(self):
+        logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
+        logger.info('------.v0.4')
+        await self.change_presence(status=discord.Status.invisible)
+        for guild in self.guilds:
+            if int(os.getenv('D4SERVER')) == guild.id:
+                logger.info(f"I'm in server {guild.name}!")
+                if isinstance(int(os.getenv('D4CHANNEL')), discord.channel.Thread):
+                    try:
+                        await self.get_channel(int(os.getenv('D4CHANNEL'))).join()
+                    except Exception as e:
+                        print(f"Cannot join thread: {e}")
+
     async def twitch_get_bearer(self, client_id: str, client_secret: str):
         logger.info('Getting Twitch bearer token...')
         async with aiohttp.ClientSession() as session:
@@ -80,18 +93,6 @@ class MyClient(discord.Client):
         # start the task to run in the background
         self.my_background_task.start()
 
-    async def on_ready(self):
-        logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
-        logger.info('------.v0.4')
-        await self.change_presence(status=discord.Status.invisible)
-        for guild in self.guilds:
-            if int(os.getenv('D4SERVER')) == guild.id:
-                logger.info(f"I'm in server {guild.name}!")
-                if isinstance(int(os.getenv('D4CHANNEL')), discord.channel.Thread):
-                    try:
-                        await self.get_channel(int(os.getenv('D4CHANNEL'))).join()
-                    except Exception as e:
-                        print(f"Cannot join thread: {e}")
 
     @tasks.loop(seconds=60)  # task runs every 60 seconds
     async def my_background_task(self):
@@ -114,7 +115,8 @@ class MyClient(discord.Client):
                         await f.write(await r.read())
                         await f.close()
                     await session.close()
-            message = f"\U0001F534 Ich bin live! <:mariothumb:992329728008671323>\n**{self.stream_data[0]['title']}**\nhttps://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
+            message = f"\U0001F534 Ich bin live! {os.getenv('EMOJI')}\n**{self.stream_data[0]['title']}**\n" + \
+                      f"https://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
             try:
                 await self.change_presence(status=discord.Status.online)
                 await channel.send(
@@ -172,7 +174,8 @@ class MyClient(discord.Client):
             async with aiohttp.ClientSession() as session:
                 headers = {
                     # let's camouflage ourself
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" +
+                                  "(KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
                 }
                 async with session.get('https://d4armory.io/api/events/recent', headers=headers) as r:
                     if r.status != 200:
@@ -184,10 +187,10 @@ class MyClient(discord.Client):
                         if message.content == "!boss":
                             try:
                                 await message.channel.send(
-                                    f"<:diablo:1125470809050333224> Nächster Bossspawn:\n" +
+                                    f"{os.getenv('D4EMOJI')} Nächster Bossspawn:\n" +
                                     f"**{js['boss']['expectedName']}** in {js['boss']['zone']}/{js['boss']['territory']} um " +
                                     f"**{datetime.datetime.fromtimestamp(js['boss']['expected']).strftime('%H:%M:%S')}**\n" +
-                                    f"Danach:\n" +
+                                    f"{os.getenv('D4EMOJI')} Danach:\n" +
                                     f"**{js['boss']['nextExpectedName']}** um "
                                     f"**{datetime.datetime.fromtimestamp(js['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
                                 )
@@ -196,10 +199,10 @@ class MyClient(discord.Client):
                         elif message.content == "!legion":
                             legion_active = ""
                             if int(datetime.time().strftime('%s')) < int(js['legion']['timestamp']):
-                                legion_active = " (aktiv??? <a:lrCheck:1067164823026139228>)"
+                                legion_active = " (aktiv???)"
                             try:
                                 await message.channel.send(
-                                    f"Nächste Legion:\n" +
+                                    f"{os.getenv('D4EMOJI')} Nächste Legion:\n" +
                                     f"In {js['legion']['zone']}/{js['legion']['territory']} um " +
                                     f"**{datetime.datetime.fromtimestamp(js['legion']['timestamp']).strftime('%H:%M:%S')}** {legion_active}\n"
                                 )
