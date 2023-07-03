@@ -192,11 +192,12 @@ class MyClient(discord.Client):
                                     f"**{datetime.datetime.fromtimestamp(js['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
                                 )
                             elif message.content == "!legion":
+                                legion_active = ""
                                 if int(datetime.time().strftime('%s')) > int(js['legion']['timestamp']): legion_active = " (aktiv)"
                                 await message.channel.send(
                                     f"Nächste Legion:\n" +
                                     f"In {js['legion']['zone']}/{js['legion']['territory']} um " +
-                                    f"**{datetime.datetime.fromtimestamp(js['legion']['timestamp']).strftime('%H:%M:%S')}**\n"
+                                    f"**{datetime.datetime.fromtimestamp(js['legion']['timestamp']).strftime('%H:%M:%S')}** {legion_active}\n"
                                 )
 
 
