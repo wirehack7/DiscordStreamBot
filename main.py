@@ -78,7 +78,7 @@ class MyClient(discord.Client):
         self.my_background_task.start()
 
     async def on_ready(self):
-        await client.change_presence(status=discord.Status.invisible)
+        await self.change_presence(status=discord.Status.invisible)
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
         logger.info('------.v0.4')
 
@@ -105,13 +105,13 @@ class MyClient(discord.Client):
                     await session.close()
             message = f"\U0001F534 Ich bin live!\n**{self.stream_data[0]['title']}**\nhttps://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
             try:
-                await client.change_presence(status=discord.Status.online)
+                await self.change_presence(status=discord.Status.online)
                 await channel.send(
                     message,
                     suppress_embeds=True,
                     file=discord.File(r'./stream_thumb.jpg'))
                 logger.info("Sent chat message")
-                await client.change_presence(status=discord.Status.invisible)
+                await self.change_presence(status=discord.Status.invisible)
             except Exception as e:
                 logger.error(f"Couldn't send message: {e}")
 
@@ -136,7 +136,7 @@ class MyClient(discord.Client):
         elif str(message.author) == "natit":
             self.expression = "dog"
         elif str(message.author) == "wirehack7":
-            self.expression = "gundam mech"
+            self.expression = "cyber hacking"
         elif str(message.author) == "tongo91":
             self.expression = "panda"
         elif str(message.author) == "lo0twig":
