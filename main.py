@@ -168,7 +168,7 @@ class MyClient(discord.Client):
             if message.channel.id == int(os.getenv('D4CHANNEL')) \
                     and message.channel.locked is False \
                     and message.channel.archived is False \
-                    and message.content == "!boss":
+                    and (message.content == "!boss" or message.content == "!legion"):
                 async with aiohttp.ClientSession() as session:
                     headers = {
                         # let's camouflage ourself
@@ -181,14 +181,21 @@ class MyClient(discord.Client):
                         else:
                             js = await r.json()
                             await session.close()
-                            await message.channel.send(
-                                f"Nächster Bossspawn:\n" +
-                                f"**{js['boss']['expectedName']}** in {js['boss']['zone']}/{js['boss']['territory']} um " +
-                                f"**{datetime.datetime.fromtimestamp(js['boss']['expected']).strftime('%H:%M:%S')}**\n" +
-                                f"Danach:\n" +
-                                f"**{js['boss']['nextExpectedName']}** um "
-                                f"**{datetime.datetime.fromtimestamp(js['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
-                            )
+                            if message.content == "!boss":
+                                await message.channel.send(
+                                    f"Nächster Bossspawn:\n" +
+                                    f"**{js['boss']['expectedName']}** in {js['boss']['zone']}/{js['boss']['territory']} um " +
+                                    f"**{datetime.datetime.fromtimestamp(js['boss']['expected']).strftime('%H:%M:%S')}**\n" +
+                                    f"Danach:\n" +
+                                    f"**{js['boss']['nextExpectedName']}** um "
+                                    f"**{datetime.datetime.fromtimestamp(js['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
+                                )
+                            elif message.content == "!legion":
+                                await message.channel.send(
+                                    f"Nächste Legion:\n" +
+                                    f"In {js['legion']['zone']}/{js['legion']['territory']} um " +
+                                    f"**{datetime.datetime.fromtimestamp(js['legion']['timestamp']).strftime('%H:%M:%S')}**\n"
+                                )
 
 
 if __name__ == "__main__":
