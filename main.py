@@ -159,7 +159,8 @@ class MyClient(discord.Client):
             logger.info(f"Received DM from {message.author}, sending {self.expression} GIF")
 
             try:
-                await message.channel.send(f"Hey hey {message.author.display_name}\n{self.g.screensaver(self.expression).media_url}")
+                await message.channel.send(
+                    f"Hey hey {message.author.display_name}\n{self.g.screensaver(self.expression).media_url}")
             except Exception as e:
                 logger.error(f"Couldn't send message: {e}")
 
@@ -191,6 +192,7 @@ class MyClient(discord.Client):
                                     f"**{datetime.datetime.fromtimestamp(js['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
                                 )
                             elif message.content == "!legion":
+                                if int(datetime.time().strftime('%s')) > int(js['legion']['timestamp']): legion_active = " (aktiv)"
                                 await message.channel.send(
                                     f"Nächste Legion:\n" +
                                     f"In {js['legion']['zone']}/{js['legion']['territory']} um " +
