@@ -148,10 +148,10 @@ class MyClient(discord.Client):
                     await message.channel.send(
                         f"Next worldboss:\n" +
                         f"{self.diablo_emoji}**{data['boss']['expectedName']}** in {data['boss']['zone']}/{data['boss']['territory']} at " +
-                        f"**{datetime.datetime.fromtimestamp(data['boss']['expected']).strftime('%H:%M:%S (%z)')}**\n\n" +
+                        f"**{datetime.datetime.fromtimestamp(data['boss']['expected']).strftime('%H:%M:%S')}**\n\n" +
                         f"Following worldboss:\n" +
                         f"{self.diablo_emoji}**{data['boss']['nextExpectedName']}** at "
-                        f"**{datetime.datetime.fromtimestamp(data['boss']['nextExpected']).strftime('%H:%M:%S (%z)')}**\n"
+                        f"**{datetime.datetime.fromtimestamp(data['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
                     )
                 except Exception as e:
                     self.logging.error(f"Couldn't send message: {e}")
