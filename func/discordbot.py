@@ -245,6 +245,7 @@ class MyClient(discord.Client):
 
     @tasks.loop(seconds=60)  # task runs every 60 seconds
     async def background_d4boss(self):
+        self.logging.info(f'Checking world boss spawn...')
         if self.diablo['boss']['expected'] == 0:
             raise ValueError('Diablo 4 Worldboss timer not set')
 
@@ -256,12 +257,14 @@ class MyClient(discord.Client):
         minutes = (int(self.diablo['boss']['expected']) - int(time.time())) / 60
         logging.debug(f'Diablo 4 current minutes diff: {str(minutes)}')
         if minutes <= int(self.config['DIABLO']['minutes']) and self.diablo_boss_sent is not True:
+            self.logging.info(f'Sending D4 world boss alert, time diff (minutes): {minutes}')
             self.diablo_boss_sent = True
             try:
                 await channel.send(message)
             except Exception as e:
                 logging.error(f"Couldn't send message: {e}")
         elif 0 >= minutes > -2 and self.diablo_boss_sent_now is not True:
+            self.logging.info(f'Sending D4 world boss alert, time diff (minutes): {minutes}')
             self.diablo_boss_sent_now = True
             try:
                 await channel.send(message)
