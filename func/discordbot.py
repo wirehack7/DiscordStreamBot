@@ -44,6 +44,7 @@ class MyClient(discord.Client):
         self.stream_data = []
         self.live = False
         self.dimensions = {"{width}": "500", "{height}": "281"}
+        self.thumbnail = False
 
         if 'GIPHY' in self.config:
             self.g = giphypop.Giphy(api_key=self.config['GIPHY']['apikey'])
@@ -111,10 +112,12 @@ class MyClient(discord.Client):
                     await f.write(await r.read())
                     self.logging.debug("Wrote stream thumb")
                     await session.close()
-                    return True
+                    self.thumbnail = True
+                    return
                 else:
                     await session.close()
-                    return False
+                    self.thumbnail = False
+                    return
 
     async def get_diablo_data(self):
         self.logging.info(f'Getting Diablo IV data')
@@ -206,15 +209,18 @@ class MyClient(discord.Client):
             for word, dimension in self.dimensions.items():
                 image_url = image_url.replace(word, dimension)
             # Try to download thumbnail
-            thumbnail = self.get_stream_thumb(image_url)
-            # wait random 2sec until I/O finishes
-            await asyncio.sleep(2)
+            task = self.get_stream_thumb(image_url)
+            try:
+                await asyncio.wait_for(task, timeout=5)
+            except asyncio.TimeoutError as e:
+                logging.info(f'Thumbnail download timed out: {e}')
+
             message = str(self.config['DISCORD']['message']) + \
                       f"\n**{self.stream_data[0]['title']}**\n" + \
                       f"https://www.twitch.tv/{self.config['TWITCH']['name']}"
             self.logging.debug(message)
             try:
-                if thumbnail is True:
+                if self.thumbnail is True:
                     await channel.send(
                         message,
                         suppress_embeds=True,
@@ -229,9 +235,6 @@ class MyClient(discord.Client):
             except Exception as e:
                 self.logging.error(f"Couldn't send message: {e}")
 
-            # wait another 2sec to remove file
-            await asyncio.sleep(2)
-            await aiofiles.os.remove('./stream_thumb.jpg')
             self.live = True
         elif len(self.stream_data) == 0:
             self.logging.info(f"{self.config['TWITCH']['name']} is not streaming...")
