@@ -22,7 +22,4 @@ minutes         = 10
 apikey          =
 
 [GIFFUN]
-natit           = dog
-tongo91         = panda
-lo0twig         = super mario
-hanarius        = grumpy old man
+example         = example giphy search
