@@ -247,7 +247,7 @@ class MyClient(discord.Client):
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     formatter = logging.Formatter("[%(filename)s:%(lineno)s - %(funcName)20s() ] [%(levelname)s] %(message)s")
     handler.setFormatter(formatter)
