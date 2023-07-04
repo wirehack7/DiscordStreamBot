@@ -164,11 +164,13 @@ class MyClient(discord.Client):
                 image_url = image_url.replace(word, dimension)
             # Try to download thumbnail
             async with aiohttp.ClientSession() as session:
+                logger.debug(f"Trying to download {image_url}")
                 async with session.get(image_url) as r:
                     if r.status == 200:
                         f = await aiofiles.open('./stream_thumb.jpg', mode='wb')
                         await f.write(await r.read())
                         await f.close()
+                        logger.debug("Wrote stream thumb")
                     await session.close()
             message = f"\U0001F534 Ich bin live! {os.getenv('EMOJI')}\n**{self.stream_data[0]['title']}**\n" + \
                       f"https://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
@@ -183,7 +185,7 @@ class MyClient(discord.Client):
             except Exception as e:
                 logger.error(f"Couldn't send message: {e}")
 
-            await aiofiles.os.remove('./stream_thumb.jpg')
+            #await aiofiles.os.remove('./stream_thumb.jpg')
             self.live = True
         elif len(self.stream_data) == 0:
             logger.info(f"{os.getenv('TWITCH_NAME')} is not streaming...")
@@ -229,7 +231,7 @@ class MyClient(discord.Client):
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     handler = logging.StreamHandler()
     formatter = logging.Formatter("[%(filename)s:%(lineno)s - %(funcName)20s() ] [%(levelname)s] %(message)s")
     handler.setFormatter(formatter)
