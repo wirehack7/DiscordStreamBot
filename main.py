@@ -100,7 +100,6 @@ class MyClient(discord.Client):
                 if r.status == 200:
                     f = await aiofiles.open('./stream_thumb.jpg', mode='wb')
                     await f.write(await r.read())
-                    await f.close()
                     logger.debug("Wrote stream thumb")
                     await session.close()
                     return True
@@ -180,7 +179,7 @@ class MyClient(discord.Client):
             for word, dimension in self.dimensions.items():
                 image_url = image_url.replace(word, dimension)
             # Try to download thumbnail
-            thumbnail = await self.get_stream_thumb(image_url)
+            thumbnail = self.get_stream_thumb(image_url)
             await asyncio.sleep(2)
             message = f"\U0001F534 Ich bin live! {os.getenv('EMOJI')}\n**{self.stream_data[0]['title']}**\n" + \
                       f"https://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
