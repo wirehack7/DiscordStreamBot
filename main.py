@@ -29,7 +29,7 @@ if __name__ == "__main__":
         level=log_level_info.get(config['DEFAULT']['LOG_LEVEL'], logging.ERROR),
         handlers=[
             colorlog.StreamHandler(),
-            TimedRotatingFileHandler("output.log",
+            TimedRotatingFileHandler("logs/output.log",
                                      when="d",
                                      interval=1,
                                      backupCount=5
