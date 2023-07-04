@@ -30,7 +30,7 @@ if __name__ == "__main__":
         handlers=[
             colorlog.StreamHandler(),
             TimedRotatingFileHandler("output.log",
-                                     when="m",
+                                     when="d",
                                      interval=1,
                                      backupCount=5
                                      )
