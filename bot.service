@@ -1,0 +1,15 @@
+[Unit]
+Description=Discord Bot
+After=multi-user.target
+Conflicts=getty@tty1.service
+DefaultDependencies=no
+
+[Service]
+Type=simple
+User=<username>
+WorkingDirectory=/<path to bot folder>
+ExecStart=/usr/bin/python3 /<path to main.py>
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

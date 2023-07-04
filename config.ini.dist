@@ -1,0 +1,28 @@
+[DEFAULT]
+LOG_LEVEL       = logging.INFO
+
+[DISCORD]
+token           =
+channel         =
+message         = "\U0001F534 Ich bin live!"
+
+[TWITCH]
+name            =
+client_id       =
+client_secret   =
+
+[DIABLO]
+server          =
+channel         =
+emoji           =
+alerts          = False
+minutes         = 10
+
+[GIPHY]
+apikey          =
+
+[GIFFUN]
+natit           = dog
+tongo91         = panda
+lo0twig         = super mario
+hanarius        = grumpy old man
