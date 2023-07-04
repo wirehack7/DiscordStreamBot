@@ -92,6 +92,22 @@ class MyClient(discord.Client):
                     logger.debug(len(js['data']))
                     self.stream_data = js['data']
 
+    async def get_stream_thumb(self, url):
+        async with aiohttp.ClientSession() as session:
+            logger.debug(f"Trying to download {url}")
+            async with session.get(url) as r:
+                if r.status == 200:
+                    f = await aiofiles.open('./stream_thumb.jpg', mode='wb')
+                    await f.write(await r.read())
+                    await f.close()
+                    logger.debug("Wrote stream thumb")
+                    await session.close()
+                    return True
+                else:
+                    await session.close()
+                    return False
+
+
     async def get_diablo_data(self):
         logger.info(f'Getting Diablo IV data')
         async with aiohttp.ClientSession() as session:
@@ -163,23 +179,22 @@ class MyClient(discord.Client):
             for word, dimension in self.dimensions.items():
                 image_url = image_url.replace(word, dimension)
             # Try to download thumbnail
-            async with aiohttp.ClientSession() as session:
-                logger.debug(f"Trying to download {image_url}")
-                async with session.get(image_url) as r:
-                    if r.status == 200:
-                        f = await aiofiles.open('./stream_thumb.jpg', mode='wb')
-                        await f.write(await r.read())
-                        await f.close()
-                        logger.debug("Wrote stream thumb")
-                    await session.close()
+            thumbnail = await self.get_stream_thumb(image_url)
             message = f"\U0001F534 Ich bin live! {os.getenv('EMOJI')}\n**{self.stream_data[0]['title']}**\n" + \
                       f"https://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
             try:
                 await self.change_presence(status=discord.Status.online)
-                await channel.send(
-                    message,
-                    suppress_embeds=True,
-                    file=discord.File(r'./stream_thumb.jpg'))
+                if thumbnail is True:
+                    await channel.send(
+                        message,
+                        suppress_embeds=True,
+                        file=discord.File(r'./stream_thumb.jpg')
+                    )
+                else:
+                    await channel.send(
+                        message,
+                        suppress_embeds=True
+                    )
                 logger.info("Sent chat message")
                 await self.change_presence(status=discord.Status.invisible)
             except Exception as e:
