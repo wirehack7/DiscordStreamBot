@@ -172,17 +172,18 @@ class MyClient(discord.Client):
         channel = self.get_channel(int(os.getenv('CHANNEL')))
         if len(self.stream_data) > 0 and self.live is not True:
             logger.info(f"Found stream with title {self.stream_data[0]['title']}")
-            logging.debug(self.stream_data)
+            logger.debug(self.stream_data)
             # Create thumbnail url
             image_url = self.stream_data[0]['thumbnail_url']
             # replace dimension placeholders in URL
             for word, dimension in self.dimensions.items():
                 image_url = image_url.replace(word, dimension)
             # Try to download thumbnail
-            thumbnail = await self.get_stream_thumb(image_url)
+            # thumbnail = await self.get_stream_thumb(image_url)
             thumbnail = False
             message = f"\U0001F534 Ich bin live! {os.getenv('EMOJI')}\n**{self.stream_data[0]['title']}**\n" + \
                       f"https://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
+            logger.debug(message)
             try:
                 await self.change_presence(status=discord.Status.online)
                 if thumbnail is True:
