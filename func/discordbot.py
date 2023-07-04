@@ -213,7 +213,7 @@ class MyClient(discord.Client):
             try:
                 await asyncio.wait_for(self.get_stream_thumb(image_url), timeout=5)
             except asyncio.TimeoutError as e:
-                logging.info(f'Thumbnail download timed out: {e}')
+                logging.warning(f'Thumbnail download timed out: {e}')
 
             message = str(self.config['DISCORD']['message']) + \
                       f"\n**{self.stream_data[0]['title']}**\n" + \
