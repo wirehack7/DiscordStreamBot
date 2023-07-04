@@ -156,7 +156,7 @@ class MyClient(discord.Client):
         channel = self.get_channel(int(os.getenv('CHANNEL')))
         if len(self.stream_data) > 0 and self.live is not True:
             logger.info(f"Found stream with title {self.stream_data[0]['title']}")
-
+            logging.debug(self.stream_data)
             # Create thumbnail url
             image_url = self.stream_data[0]['thumbnail_url']
             # replace dimension placeholders in URL
