@@ -9,6 +9,7 @@ import aiohttp
 import logging
 import aiofiles
 import aiofiles.os
+import asyncio
 
 import giphypop
 
@@ -180,6 +181,8 @@ class MyClient(discord.Client):
                 image_url = image_url.replace(word, dimension)
             # Try to download thumbnail
             # thumbnail = await self.get_stream_thumb(image_url)
+            tasks = [await self.get_stream_thumb(image_url)]
+            await asyncio.gather(*tasks)
             thumbnail = False
             message = f"\U0001F534 Ich bin live! {os.getenv('EMOJI')}\n**{self.stream_data[0]['title']}**\n" + \
                       f"https://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
