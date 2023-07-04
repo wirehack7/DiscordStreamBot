@@ -198,8 +198,6 @@ class MyClient(discord.Client):
         await self.wait_until_ready()  # wait until the bot logs in
 
     async def on_message(self, message):
-        logger.debug(f"Author var is of type {type(message.author)}")
-
         if message.author == client.user:
             logger.info("Don't react to own messages")
             return
