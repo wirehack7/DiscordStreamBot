@@ -4,7 +4,7 @@ LOG_LEVEL       = logging.INFO
 [DISCORD]
 token           =
 channel         =
-message         = "\U0001F534 Ich bin live!"
+message         = :red_circle: Ich bin live!
 
 [TWITCH]
 name            =
