@@ -33,8 +33,7 @@ class MyClient(discord.Client):
 
         if 'DIABLO' in self.config:
             self.diablo = {}
-            self.diablo_emoji = [lambda: '', lambda: str(self.config['DIABLO']['emoji']) + " "][
-                'emoji' in self.config['DIABLO']]()
+            self.diablo_emoji = [lambda: '', lambda: str(self.config['DIABLO']['emoji']) + " "]['emoji' in self.config['DIABLO']]()
             self.diablo_boss_sent = False
             self.diablo_boss_sent_now = False
 
