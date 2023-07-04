@@ -203,7 +203,8 @@ class MyClient(discord.Client):
             except Exception as e:
                 logger.error(f"Couldn't send message: {e}")
 
-            #await aiofiles.os.remove('./stream_thumb.jpg')
+            await asyncio.sleep(2)
+            await aiofiles.os.remove('./stream_thumb.jpg')
             self.live = True
         elif len(self.stream_data) == 0:
             logger.info(f"{os.getenv('TWITCH_NAME')} is not streaming...")
