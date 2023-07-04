@@ -138,11 +138,11 @@ class MyClient(discord.Client):
             if message.content == "!boss":
                 try:
                     await message.channel.send(
-                        f"{os.getenv('D4EMOJI')} Nächster Bossspawn:\n" +
-                        f"**{data['boss']['expectedName']}** in {data['boss']['zone']}/{data['boss']['territory']} um " +
+                        f"Nächster Bossspawn:\n" +
+                        f"{os.getenv('D4EMOJI')} **{data['boss']['expectedName']}** in {data['boss']['zone']}/{data['boss']['territory']} um " +
                         f"**{datetime.datetime.fromtimestamp(data['boss']['expected']).strftime('%H:%M:%S')}**\n" +
-                        f"{os.getenv('D4EMOJI')} Danach:\n" +
-                        f"**{data['boss']['nextExpectedName']}** um "
+                        f"Danach:\n" +
+                        f"{os.getenv('D4EMOJI')} **{data['boss']['nextExpectedName']}** um "
                         f"**{datetime.datetime.fromtimestamp(data['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
                     )
                 except Exception as e:
