@@ -294,7 +294,8 @@ class MyClient(discord.Client):
             await self.send_gif(message)
 
         # Diablo IV boss info
-        await self.send_d4_info(message)
+        if 'DIABLO' in self.config:
+            await self.send_d4_info(message)
 
     async def on_ready(self):
         self.logging.info(f'Logged in as {self.user} (ID: {self.user.id})')
