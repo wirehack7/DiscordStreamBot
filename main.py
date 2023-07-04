@@ -10,6 +10,7 @@ import aiofiles
 import aiofiles.os
 import giphypop
 import datetime
+import configparser
 
 
 class MyClient(discord.Client):
@@ -88,6 +89,58 @@ class MyClient(discord.Client):
                     await session.close()
                     logger.debug(len(js['data']))
                     self.stream_data = js['data']
+
+    async def get_diablo_data(self):
+        logger.info(f'Getting Diablo IV data')
+        async with aiohttp.ClientSession() as session:
+            headers = {
+                # let's camouflage ourself
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" +
+                              "(KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+            }
+            async with session.get('https://d4armory.io/api/events/recent', headers=headers) as r:
+                if r.status != 200:
+                    await session.close()
+                    logger.error(f"Couldn't retrieve boss info, got status: {r.status}")
+                    raise Exception(f"Couldn't retrieve boss info, got status: {r.status}")
+                else:
+                    js = await r.json()
+                    await session.close()
+                    return js
+
+    async def send_d4_info(self, message):
+        if message.channel.id == int(os.getenv('D4CHANNEL')) \
+                and (message.content == "!boss" or message.content == "!legion"):
+
+            try:
+                data = await self.get_diablo_data()
+            except Exception as e:
+                logger.error(f"Couldn't retrieve D4 data: {e}")
+                return
+            if message.content == "!boss":
+                try:
+                    await message.channel.send(
+                        f"{os.getenv('D4EMOJI')} Nächster Bossspawn:\n" +
+                        f"**{data['boss']['expectedName']}** in {data['boss']['zone']}/{data['boss']['territory']} um " +
+                        f"**{datetime.datetime.fromtimestamp(data['boss']['expected']).strftime('%H:%M:%S')}**\n" +
+                        f"{os.getenv('D4EMOJI')} Danach:\n" +
+                        f"**{data['boss']['nextExpectedName']}** um "
+                        f"**{datetime.datetime.fromtimestamp(data['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
+                    )
+                except Exception as e:
+                    logger.error(f"Couldn't send message: {e}")
+            elif message.content == "!legion":
+                legion_active = ""
+                if int(datetime.time().strftime('%s')) < int(data['legion']['timestamp']):
+                    legion_active = " (aktiv???)"
+                try:
+                    await message.channel.send(
+                        f"{os.getenv('D4EMOJI')} Nächste Legion:\n" +
+                        f"In {data['legion']['zone']}/{data['legion']['territory']} um " +
+                        f"**{datetime.datetime.fromtimestamp(data['legion']['timestamp']).strftime('%H:%M:%S')}** {legion_active}\n"
+                    )
+                except Exception as e:
+                    logger.error(f"Couldn't send message: {e}")
 
     async def setup_hook(self) -> None:
         # start the task to run in the background
@@ -169,45 +222,7 @@ class MyClient(discord.Client):
                 logger.error(f"Couldn't send message: {e}")
 
         # Diablo IV boss info
-        if message.channel.id == int(os.getenv('D4CHANNEL')) \
-                and (message.content == "!boss" or message.content == "!legion"):
-            async with aiohttp.ClientSession() as session:
-                headers = {
-                    # let's camouflage ourself
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" +
-                                  "(KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-                }
-                async with session.get('https://d4armory.io/api/events/recent', headers=headers) as r:
-                    if r.status != 200:
-                        await session.close()
-                        logger.error(f"Couldn't retrieve boss info, got status: {r.status}")
-                    else:
-                        js = await r.json()
-                        await session.close()
-                        if message.content == "!boss":
-                            try:
-                                await message.channel.send(
-                                    f"{os.getenv('D4EMOJI')} Nächster Bossspawn:\n" +
-                                    f"**{js['boss']['expectedName']}** in {js['boss']['zone']}/{js['boss']['territory']} um " +
-                                    f"**{datetime.datetime.fromtimestamp(js['boss']['expected']).strftime('%H:%M:%S')}**\n" +
-                                    f"{os.getenv('D4EMOJI')} Danach:\n" +
-                                    f"**{js['boss']['nextExpectedName']}** um "
-                                    f"**{datetime.datetime.fromtimestamp(js['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
-                                )
-                            except Exception as e:
-                                logger.error(f"Couldn't send message: {e}")
-                        elif message.content == "!legion":
-                            legion_active = ""
-                            if int(datetime.time().strftime('%s')) < int(js['legion']['timestamp']):
-                                legion_active = " (aktiv???)"
-                            try:
-                                await message.channel.send(
-                                    f"{os.getenv('D4EMOJI')} Nächste Legion:\n" +
-                                    f"In {js['legion']['zone']}/{js['legion']['territory']} um " +
-                                    f"**{datetime.datetime.fromtimestamp(js['legion']['timestamp']).strftime('%H:%M:%S')}** {legion_active}\n"
-                                )
-                            except Exception as e:
-                                logger.error(f"Couldn't send message: {e}")
+        await self.send_d4_info(message)
 
 
 if __name__ == "__main__":
