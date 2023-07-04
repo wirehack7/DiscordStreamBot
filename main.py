@@ -1,16 +1,18 @@
 import os
-import discord
-from discord.ext.commands import bot
+
 from dotenv import load_dotenv
+
+import discord
 from discord.ext import tasks
+
 import aiohttp
-import asyncio
 import logging
 import aiofiles
 import aiofiles.os
+
 import giphypop
+
 import datetime
-import configparser
 
 
 class MyClient(discord.Client):
@@ -232,6 +234,7 @@ if __name__ == "__main__":
     formatter = logging.Formatter("[%(filename)s:%(lineno)s - %(funcName)20s() ] [%(levelname)s] %(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
     load_dotenv()
 
     TOKEN = os.getenv('DISCORD_TOKEN')
