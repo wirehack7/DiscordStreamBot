@@ -1,12 +1,9 @@
 #!/usr/bin/python3
-import os
 import discord
 import logging
 import configparser
 from func.discordbot import MyClient
-import colorlog
 from logging.handlers import TimedRotatingFileHandler
-import time
 
 log_level_info = {
     'logging.DEBUG': logging.DEBUG,
@@ -27,12 +24,14 @@ if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s [%(filename)s:%(lineno)s - %(funcName)20s() ] [%(levelname)s] %(message)s",
         level=log_level_info.get(config['DEFAULT']['LOG_LEVEL'], logging.ERROR),
+        encoding='utf-8',
         handlers=[
-            colorlog.StreamHandler(),
+            logging.StreamHandler(),
             TimedRotatingFileHandler("logs/output.log",
                                      when="d",
                                      interval=1,
-                                     backupCount=5
+                                     backupCount=5,
+                                     encoding="utf-8"
                                      )
         ]
     )
