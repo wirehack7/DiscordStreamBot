@@ -146,11 +146,11 @@ class MyClient(discord.Client):
             if message.content == "!boss":
                 try:
                     await message.channel.send(
-                        f"{self.diablo_emoji}Next worldboss:\n" +
-                        f"**{data['boss']['expectedName']}** in {data['boss']['zone']}/{data['boss']['territory']} at " +
+                        f"Next worldboss:\n" +
+                        f"{self.diablo_emoji}**{data['boss']['expectedName']}** in {data['boss']['zone']}/{data['boss']['territory']} at " +
                         f"**{datetime.datetime.fromtimestamp(data['boss']['expected']).strftime('%H:%M:%S')}**\n\n" +
-                        f"{self.diablo_emoji}Following worldboss:\n" +
-                        f"**{data['boss']['nextExpectedName']}** at "
+                        f"Following worldboss:\n" +
+                        f"{self.diablo_emoji}**{data['boss']['nextExpectedName']}** at "
                         f"**{datetime.datetime.fromtimestamp(data['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
                     )
                 except Exception as e:
