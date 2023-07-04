@@ -180,10 +180,8 @@ class MyClient(discord.Client):
             for word, dimension in self.dimensions.items():
                 image_url = image_url.replace(word, dimension)
             # Try to download thumbnail
-            # thumbnail = await self.get_stream_thumb(image_url)
-            tasks = [await self.get_stream_thumb(image_url)]
-            await asyncio.gather(*tasks)
-            thumbnail = False
+            thumbnail = await self.get_stream_thumb(image_url)
+            await asyncio.sleep(10)
             message = f"\U0001F534 Ich bin live! {os.getenv('EMOJI')}\n**{self.stream_data[0]['title']}**\n" + \
                       f"https://www.twitch.tv/{os.getenv('TWITCH_NAME')}"
             logger.debug(message)
