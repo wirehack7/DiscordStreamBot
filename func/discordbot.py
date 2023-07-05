@@ -33,9 +33,10 @@ class MyClient(discord.Client):
 
         if 'DIABLO' in self.config:
             self.diablo = {}
-            self.diablo_emoji = [lambda: '', lambda: str(self.config['DIABLO']['emoji']) + " "]['emoji' in self.config['DIABLO']]()
+            self.diablo_emoji = [lambda: '', lambda: str(self.config['DIABLO']['emoji']) + " "][
+                'emoji' in self.config['DIABLO']]()
             self.diablo_boss_sent = False
-            self.diablo_boss_sent_now = False
+            # self.diablo_boss_sent_now = False
 
         # an attribute we can access from our task
         self.twitch_user_id = 0
@@ -265,15 +266,18 @@ class MyClient(discord.Client):
                 await channel.send(message)
             except Exception as e:
                 logging.error(f"Couldn't send message: {e}")
-        elif 0 >= minutes > -2 and self.diablo_boss_sent_now is not True:
-            self.logging.info(f'Sending D4 world boss alert, time diff (minutes): {minutes}')
-            self.diablo_boss_sent_now = True
-            try:
-                await channel.send(message)
-            except Exception as e:
-                logging.error(f"Couldn't send message: {e}")
+
+
+        # elif 0 >= minutes > -2 and self.diablo_boss_sent_now is not True:
+        #    self.logging.info(f'Sending D4 world boss alert, time diff (minutes): {minutes}')
+        #    self.diablo_boss_sent_now = True
+        #   try:
+        #        await channel.send(message)
+        #   except Exception as e:
+        #        logging.error(f"Couldn't send message: {e}")
+
         elif minutes <= -10:
-            self.diablo_boss_sent_now = False
+            # self.diablo_boss_sent_now = False
             self.diablo_boss_sent = False
             self.diablo = await self.get_diablo_data()
 
