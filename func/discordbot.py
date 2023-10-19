@@ -31,24 +31,21 @@ class MyClient(discord.Client):
         if 'DISCORD' not in self.config or 'TWITCH' not in self.config:
             raise ValueError('Section for config not found, please check your config!')
 
-        if 'DIABLO' in self.config:
-            self.diablo = {}
-            self.diablo_emoji = [lambda: '', lambda: str(self.config['DIABLO']['emoji']) + " "][
-                'emoji' in self.config['DIABLO']]()
-            self.diablo_boss_sent = False
-            # self.diablo_boss_sent_now = False
-
         # an attribute we can access from our task
-        self.twitch_user_id = 0
         self.bearer_token = 0
+        self.streams = {}
         self.stream_data = []
         self.live = False
         self.dimensions = {"{width}": "500", "{height}": "281"}
         self.thumbnail = False
-
-        if 'GIPHY' in self.config:
-            self.g = giphypop.Giphy(api_key=self.config['GIPHY']['apikey'])
-            self.expression = "cat"
+        self.list_streams = self.config['TWITCH']['streams'].split(',')
+        self.twitch_user_id = ""
+        for stream in self.list_streams:
+            stream = stream.replace(" ", "")
+            self.streams[stream] = {}
+            self.streams[stream]['name'] = stream
+            self.streams[stream]['id'] = 0
+            self.streams[stream]['live'] = False
 
     async def twitch_get_bearer(self, client_id: str, client_secret: str):
         self.logging.info('Getting Twitch bearer token...')
@@ -68,27 +65,30 @@ class MyClient(discord.Client):
                     await session.close()
                     return js['access_token']
 
-    async def twitch_get_user_id(self, bearer, username, client_id):
-        self.logging.info(f'Trying to get user id of {username}')
-        headers = {'Authorization': f'Bearer {bearer}', 'Client-Id': client_id}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f'https://api.twitch.tv/helix/users?login={username}', headers=headers) as r:
-                self.logging.debug(f'HTTP Status: {r.status}')
-                if r.status != 200:
-                    await session.close()
-                    self.bearer_token = await self.twitch_get_bearer(client_id, self.config['TWITCH']['client_secret'])
-                    await self.twitch_get_user_id(self.bearer_token, username, client_id)
-                else:
-                    js = await r.json()
-                    await session.close()
-                    self.twitch_user_id = js['data'][0]['id']
-                    self.logging.debug(f'Got User id: {self.twitch_user_id}')
+    async def twitch_get_user_ids(self, bearer, streams, client_id):
+        self.logging.debug(f"Got streams: {streams}")
+        for stream in streams:
+            self.logging.debug(f"Stream data: {stream}")
+            self.logging.info(f"Trying to get user id of {stream}")
+            headers = {'Authorization': f'Bearer {bearer}', 'Client-Id': client_id}
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"https://api.twitch.tv/helix/users?login={stream}", headers=headers) as r:
+                    self.logging.debug(f'HTTP Status: {r.status}')
+                    if r.status != 200:
+                        await session.close()
+                        self.bearer_token = await self.twitch_get_bearer(client_id, self.config['TWITCH']['client_secret'])
+                        await self.twitch_get_user_ids(self.bearer_token, streams, client_id)
+                    else:
+                        js = await r.json()
+                        await session.close()
+                        self.streams[stream]['id'] = js['data'][0]['id']
+                        self.logging.debug(f"Got User id: {self.streams[stream]['id']}")
 
-    async def twitch_get_stream(self, bearer, client_id):
-        self.logging.info(f'Getting stream info of id {self.twitch_user_id}')
+    async def twitch_get_stream(self, bearer, client_id, twitch_user_id):
+        self.logging.info(f'Getting stream info of id {twitch_user_id}')
         headers = {'Authorization': f'Bearer {bearer}', 'Client-Id': client_id}
         async with aiohttp.ClientSession() as session:
-            async with session.get(f'https://api.twitch.tv/helix/streams?user_id={self.twitch_user_id}',
+            async with session.get(f'https://api.twitch.tv/helix/streams?user_id={twitch_user_id}',
                                    headers=headers) as r:
                 if r.status != 200:
                     await session.close()
@@ -96,19 +96,19 @@ class MyClient(discord.Client):
                         client_id,
                         self.config['TWITCH']['client_secret']
                     )
-                    await self.twitch_get_stream(self.bearer_token, client_id)
+                    await self.twitch_get_stream(self.bearer_token, client_id, twitch_user_id)
                 else:
                     js = await r.json()
                     await session.close()
                     self.logging.debug(len(js['data']))
                     self.stream_data = js['data']
 
-    async def get_stream_thumb(self, url):
+    async def get_stream_thumb(self, url, stream):
         async with aiohttp.ClientSession() as session:
             self.logging.debug(f"Trying to download {url}")
             async with session.get(url) as r:
                 if r.status == 200:
-                    f = await aiofiles.open('./stream_thumb.jpg', mode='wb')
+                    f = await aiofiles.open(f'./{stream}_thumb.jpg', mode='wb')
                     await f.write(await r.read())
                     self.logging.debug("Wrote stream thumb")
                     await session.close()
@@ -119,171 +119,64 @@ class MyClient(discord.Client):
                     self.thumbnail = False
                     return
 
-    async def get_diablo_data(self):
-        self.logging.info(f'Getting Diablo IV data')
-        async with aiohttp.ClientSession() as session:
-            headers = {
-                # let's camouflage ourself
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" +
-                              "(KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-            }
-            async with session.get('https://d4armory.io/api/events/recent', headers=headers) as r:
-                if r.status != 200:
-                    await session.close()
-                    self.logging.error(f"Couldn't retrieve boss info, got status: {r.status}")
-                    raise Exception(f"Couldn't retrieve boss info, got status: {r.status}")
-                else:
-                    js = await r.json()
-                    await session.close()
-                    return js
-
-    async def send_d4_info(self, message):
-        if message.channel.id == int(self.config['DIABLO']['channel']) \
-                and (message.content == "!boss" or message.content == "!legion"):
-
-            try:
-                data = await self.get_diablo_data()
-            except Exception as e:
-                self.logging.error(f"Couldn't retrieve D4 data: {e}")
-                return
-            if message.content == "!boss":
-                try:
-                    await message.channel.send(
-                        f"Next worldboss:\n" +
-                        f"{self.diablo_emoji}**{data['boss']['expectedName']}** in {data['boss']['zone']}/{data['boss']['territory']} at " +
-                        f"**{datetime.datetime.fromtimestamp(data['boss']['expected']).strftime('%H:%M:%S')}**\n\n" +
-                        f"Following worldboss:\n" +
-                        f"{self.diablo_emoji}**{data['boss']['nextExpectedName']}** at "
-                        f"**{datetime.datetime.fromtimestamp(data['boss']['nextExpected']).strftime('%H:%M:%S')}**\n"
-                    )
-                except Exception as e:
-                    self.logging.error(f"Couldn't send message: {e}")
-            elif message.content == "!legion":
-                try:
-                    await message.channel.send(
-                        f"{self.diablo_emoji}Next legion:\n" +
-                        f"In {data['legion']['zone']}/{data['legion']['territory']} at " +
-                        f"**{datetime.datetime.fromtimestamp(data['legion']['timestamp']).strftime('%H:%M:%S')}**\n"
-                    )
-                except Exception as e:
-                    self.logging.error(f"Couldn't send message: {e}")
-
-    async def send_gif(self, message):
-        if isinstance(message.channel, discord.channel.DMChannel):
-            if message.author == self.user.id:
-                self.logging.debug("Don't react to own messages")
-                return
-
-            author = str(message.author)
-            if 'GIFFUN' in self.config:
-                if author in self.config['GIFFUN']:
-                    self.expression = self.config['GIFFUN'][str(message.author)]
-
-            self.logging.info(f"Received DM from {message.author}, sending {self.expression} GIF")
-
-            try:
-                await message.channel.send(
-                    f"Hey hey {message.author.display_name}\n{self.g.screensaver(self.expression).media_url}")
-                return
-            except Exception as e:
-                self.logging.error(f"Couldn't send message: {e}")
-                return
-
     async def setup_hook(self) -> None:
         # start the task to run in the background
         self.background_twitch.start()
-        if 'DIABLO' in self.config and (self.config['DIABLO']['alerts'].lower() == 'true'):
-            self.background_d4boss.start()
 
     @tasks.loop(seconds=60)  # task runs every 60 seconds
     async def background_twitch(self):
-        await self.twitch_get_stream(self.bearer_token, self.config['TWITCH']['client_id'])
-        self.logging.debug(self.stream_data)
-        channel = self.get_channel(int(self.config['DISCORD']['channel']))
-        if len(self.stream_data) > 0 and self.live is not True:
-            self.logging.info(f"Found stream with title {self.stream_data[0]['title']}")
+        self.logging.debug(f'Streams dict: {self.streams}')
+        for key, value in self.streams.items():
+            self.logging.info(f"Getting stream info for: {key} and data: {value}")
+            await self.twitch_get_stream(self.bearer_token, self.config['TWITCH']['client_id'], value['id'])
             self.logging.debug(self.stream_data)
-            # Create thumbnail url
-            image_url = self.stream_data[0]['thumbnail_url']
-            # replace dimension placeholders in URL
-            for word, dimension in self.dimensions.items():
-                image_url = image_url.replace(word, dimension)
+            channel = self.get_channel(int(self.config['DISCORD']['channel']))
+            if len(self.stream_data) > 0 and self.streams[key]['live'] is not True:
+                self.logging.info(f"Found stream with title {self.stream_data[0]['title']}")
+                self.logging.debug(self.stream_data)
+                # Create thumbnail url
+                image_url = self.stream_data[0]['thumbnail_url']
+                # replace dimension placeholders in URL
+                for word, dimension in self.dimensions.items():
+                    image_url = image_url.replace(word, dimension)
 
-            # Try to download thumbnail
-            try:
-                await asyncio.wait_for(self.get_stream_thumb(image_url), timeout=5)
-            except asyncio.TimeoutError as e:
-                logging.warning(f'Thumbnail download timed out: {e}')
+                # Try to download thumbnail
+                try:
+                    await asyncio.wait_for(self.get_stream_thumb(image_url, key), timeout=5)
+                except asyncio.TimeoutError as e:
+                    logging.warning(f'Thumbnail download timed out: {e}')
 
-            message = str(self.config['DISCORD']['message']) + \
-                      f"\n**{self.stream_data[0]['title']}**\n" + \
-                      f"https://www.twitch.tv/{self.config['TWITCH']['name']}"
-            self.logging.debug(message)
-            try:
-                if self.thumbnail is True:
-                    await channel.send(
-                        message,
-                        suppress_embeds=True,
-                        file=discord.File(r'./stream_thumb.jpg')
-                    )
-                else:
-                    await channel.send(
-                        message,
-                        suppress_embeds=True
-                    )
-                self.logging.info("Sent chat message")
-            except Exception as e:
-                self.logging.error(f"Couldn't send message: {e}")
+                message = str(self.config['DISCORD']['message'].replace("{name}", key)) + \
+                          f"\n**{self.stream_data[0]['title']}**\n" + \
+                          f"https://www.twitch.tv/{key}"
+                self.logging.debug(message)
+                try:
+                    if self.thumbnail is True:
+                        file_name = f'./{key}_thumb.jpg'
+                        await channel.send(
+                            message,
+                            suppress_embeds=True,
+                            file=discord.File(file_name)
+                        )
+                    else:
+                        await channel.send(
+                            message,
+                            suppress_embeds=True
+                        )
+                    self.logging.info("Sent chat message")
+                except Exception as e:
+                    self.logging.error(f"Couldn't send message: {e}")
 
-            self.live = True
-        elif len(self.stream_data) == 0:
-            self.logging.info(f"{self.config['TWITCH']['name']} is not streaming...")
-            self.live = False
+                self.streams[key]['live'] = True
+            elif len(self.stream_data) == 0:
+                self.logging.info(f"{key} is not streaming...")
+                self.streams[key]['live'] = False
 
     @background_twitch.before_loop
     async def background_twitch_before(self):
-        await self.twitch_get_user_id(self.bearer_token, self.config['TWITCH']['name'],
-                                      self.config['TWITCH']['CLIENT_ID'])
-        await self.wait_until_ready()  # wait until the bot logs in
-
-    @tasks.loop(seconds=60)  # task runs every 60 seconds
-    async def background_d4boss(self):
-        self.logging.info(f'Checking world boss spawn...')
-        if self.diablo['boss']['expected'] == 0:
-            raise ValueError('Diablo 4 Worldboss timer not set')
-
-        message = f"**WORLDBOSS SPAWN ALERT**\n" + \
-                  f"{self.diablo_emoji} **{self.diablo['boss']['expectedName']}** in *{self.diablo['boss']['zone']}/{self.diablo['boss']['territory']}* at " + \
-                  f"**{datetime.datetime.fromtimestamp(self.diablo['boss']['expected']).strftime('%H:%M:%S')}**\n"
-
-        channel = self.get_channel(int(self.config['DIABLO']['channel']))
-        minutes = (int(self.diablo['boss']['expected']) - int(time.time())) / 60
-        logging.debug(f'Diablo 4 current minutes diff: {str(minutes)}')
-        if minutes <= int(self.config['DIABLO']['minutes']) and self.diablo_boss_sent is not True:
-            self.logging.info(f'Sending D4 world boss alert, time diff (minutes): {minutes}')
-            self.diablo_boss_sent = True
-            try:
-                await channel.send(message)
-            except Exception as e:
-                logging.error(f"Couldn't send message: {e}")
-
-
-        # elif 0 >= minutes > -2 and self.diablo_boss_sent_now is not True:
-        #    self.logging.info(f'Sending D4 world boss alert, time diff (minutes): {minutes}')
-        #    self.diablo_boss_sent_now = True
-        #   try:
-        #        await channel.send(message)
-        #   except Exception as e:
-        #        logging.error(f"Couldn't send message: {e}")
-
-        elif minutes <= -10:
-            # self.diablo_boss_sent_now = False
-            self.diablo_boss_sent = False
-            self.diablo = await self.get_diablo_data()
-
-    @background_d4boss.before_loop
-    async def background_d4boss_before(self):
-        self.diablo = await self.get_diablo_data()
+        self.logging.debug(f"Trying to get data for streams")
+        await self.twitch_get_user_ids(self.bearer_token, self.streams,
+                                       self.config['TWITCH']['CLIENT_ID'])
         await self.wait_until_ready()  # wait until the bot logs in
 
     async def on_message(self, message):
@@ -292,24 +185,9 @@ class MyClient(discord.Client):
             self.logging.debug("Don't react to own messages")
             return
 
-        # send funny gif
-        if 'GIPHY' in self.config:
-            await self.send_gif(message)
-
-        # Diablo IV boss info
-        if 'DIABLO' in self.config:
-            await self.send_d4_info(message)
-
     async def on_ready(self):
         self.logging.info(f'Logged in as {self.user} (ID: {self.user.id})')
         self.logging.info('------.v0.4')
         game = discord.Game("Counting 1 and 0 BEEBOOP")
+        self.logging.info(self.streams)
         await self.change_presence(status=discord.Status.online, activity=game)
-        for guild in self.guilds:
-            if 'DIABLO' in self.config and (int(self.config['DIABLO']['server']) == guild.id):
-                self.logging.info(f"I'm in server {guild.name}!")
-                if isinstance(int(self.config['DIABLO']['channel']), discord.channel.Thread):
-                    try:
-                        await self.get_channel(int(self.config['DIABLO']['channel'])).join()
-                    except Exception as e:
-                        print(f"Cannot join thread: {e}")

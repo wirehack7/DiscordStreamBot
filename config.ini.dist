@@ -7,19 +7,6 @@ channel         =
 message         = :red_circle: Ich bin live!
 
 [TWITCH]
-name            =
 client_id       =
 client_secret   =
-
-[DIABLO]
-server          =
-channel         =
-emoji           =
-alerts          = False
-minutes         = 10
-
-[GIPHY]
-apikey          =
-
-[GIFFUN]
-example         = example giphy search
+channels        =
