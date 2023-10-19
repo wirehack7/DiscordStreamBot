@@ -7,6 +7,7 @@ Twitch.
 
 Clone the repo and copy over `config.ini.dist` to `config.ini`  
 Only sections **[DISCORD]** and **[TWITCH]** are mandatory. If you don't want the other features, delete the whole sections.
+Streams is a comma separated list of twitch streamer names. NO TRAILING COMMA!
 
 Edit the file and propagate with API keys from Discord and Twitch.  
 To create a Discord bot and get a token go to 

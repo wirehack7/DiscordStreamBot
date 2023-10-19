@@ -2,4 +2,3 @@ discord
 python-dotenv
 aiohttp
 aiofiles
-giphypop
