@@ -4,9 +4,9 @@ LOG_LEVEL       = logging.INFO
 [DISCORD]
 token           =
 channel         =
-message         = :red_circle: Ich bin live!
+message         = :red_circle: {user} ist live!
 
 [TWITCH]
 client_id       =
 client_secret   =
-channels        =
+streams         =
