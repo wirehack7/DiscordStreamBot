@@ -11,8 +11,6 @@ import aiofiles
 import aiofiles.os
 import asyncio
 
-import giphypop
-
 
 class MyClient(discord.Client):
     def __init__(self, *args, **kwargs):
