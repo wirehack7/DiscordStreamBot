@@ -30,6 +30,8 @@ class MyClient(discord.Client):
             raise ValueError('Section for config not found, please check your config!')
 
         # an attribute we can access from our task
+        self.hour = ""
+        self.minute = ""
         self.bearer_token = 0
         self.streams = {}
         self.stream_data = []
@@ -38,6 +40,7 @@ class MyClient(discord.Client):
         self.thumbnail = False
         self.list_streams = self.config['TWITCH']['streams'].split(',')
         self.twitch_user_id = ""
+        self.leet = False
         for stream in self.list_streams:
             stream = stream.replace(" ", "")
             self.streams[stream] = {}
@@ -74,7 +77,8 @@ class MyClient(discord.Client):
                     self.logging.debug(f'HTTP Status: {r.status}')
                     if r.status != 200:
                         await session.close()
-                        self.bearer_token = await self.twitch_get_bearer(client_id, self.config['TWITCH']['client_secret'])
+                        self.bearer_token = await self.twitch_get_bearer(client_id,
+                                                                         self.config['TWITCH']['client_secret'])
                         await self.twitch_get_user_ids(self.bearer_token, streams, client_id)
                     else:
                         js = await r.json()
@@ -117,12 +121,28 @@ class MyClient(discord.Client):
                     self.thumbnail = False
                     return
 
+    async def sendleet(self, channel: int):
+        self.logging.info(f'Checking time for leet')
+        c = datetime.now()
+        self.hour = c.strftime('%H')
+        self.minute = c.strftime('%M')
+        channel = self.get_channel(channel)
+        if self.leet is False:
+            try:
+                await channel.send(
+                    f"Hour: {self.hour} minute: {self.minute}"
+                )
+                self.leet = True
+            except Exception as e:
+                self.logging.error(f"Couldn't send message: {e}")
+
     async def setup_hook(self) -> None:
         # start the task to run in the background
         self.background_twitch.start()
 
     @tasks.loop(seconds=60)  # task runs every 60 seconds
     async def background_twitch(self):
+        await self.sendleet(975399370063216721)
         self.logging.debug(f'Streams dict: {self.streams}')
         for key, value in self.streams.items():
             self.logging.info(f"Getting stream info for: {key} and data: {value}")
