@@ -129,11 +129,19 @@ class MyClient(discord.Client):
         if self.hour == "14":
             self.leet = False
         channel = self.get_channel(channel)
+        await channel.send(
+            f"1337 <@{self.config['DISCORD']['leet_user']}>"
+        )
         if self.hour == "13" and self.minute == "37" and self.leet is False:
             try:
-                await channel.send(
-                    f"1337"
-                )
+                if self.config['DISCORD']['leet_user'] != "":
+                    await channel.send(
+                        f"1337 <@{self.config['DISCORD']['leet_user']}>"
+                    )
+                else:
+                    await channel.send(
+                        f"1337"
+                    )
                 self.leet = True
             except Exception as e:
                 self.logging.error(f"Couldn't send message: {e}")

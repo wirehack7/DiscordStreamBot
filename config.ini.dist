@@ -6,6 +6,7 @@ token           =
 channel         =
 message         = :red_circle: {user} ist live!
 leet_channel    =
+leet_user       =
 
 [TWITCH]
 client_id       =
