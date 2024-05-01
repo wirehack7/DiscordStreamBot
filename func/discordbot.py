@@ -126,11 +126,13 @@ class MyClient(discord.Client):
         c = datetime.now()
         self.hour = c.strftime('%H')
         self.minute = c.strftime('%M')
+        if self.hour == "14":
+            self.leet = False
         channel = self.get_channel(channel)
-        if self.leet is False:
+        if self.hour == "13" and self.minute == "37" and self.leet is False:
             try:
                 await channel.send(
-                    f"Hour: {self.hour} minute: {self.minute}"
+                    f"1337"
                 )
                 self.leet = True
             except Exception as e:
@@ -142,7 +144,8 @@ class MyClient(discord.Client):
 
     @tasks.loop(seconds=60)  # task runs every 60 seconds
     async def background_twitch(self):
-        await self.sendleet(975399370063216721)
+        if self.config['DISCORD']['leet_channel'] != "":
+            await self.sendleet(int(self.config['DISCORD']['leet_channel']))
         self.logging.debug(f'Streams dict: {self.streams}')
         for key, value in self.streams.items():
             self.logging.info(f"Getting stream info for: {key} and data: {value}")

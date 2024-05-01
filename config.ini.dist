@@ -5,6 +5,7 @@ LOG_LEVEL       = logging.INFO
 token           =
 channel         =
 message         = :red_circle: {user} ist live!
+leet_channel    =
 
 [TWITCH]
 client_id       =
