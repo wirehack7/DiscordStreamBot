@@ -48,6 +48,7 @@ class MyClient(discord.Client):
             self.streams[stream]['id'] = 0
             self.streams[stream]['live'] = False
 
+
     async def twitch_get_bearer(self, client_id: str, client_secret: str):
         self.logging.info('Getting Twitch bearer token...')
         async with aiohttp.ClientSession() as session:
@@ -206,10 +207,16 @@ class MyClient(discord.Client):
         await self.wait_until_ready()  # wait until the bot logs in
 
     async def on_message(self, message):
-        logging.debug(message)
+        #logging.debug(message)
         if message.author.id == self.user.id:
             self.logging.debug("Don't react to own messages")
             return
+        if self.config['logging']:
+            if message.guild:
+                if message.guild.id == self.config['logging']:
+                    log_file = f"server_log/{message.guild.name}_messages.txt"
+                    logs = await aiofiles.open(log_file, mode='a+')
+                    await logs.write(f"[{message.created_at}] {message.channel.name} {message.author}: {message.content}\n")
 
     async def on_ready(self):
         self.logging.info(f'Logged in as {self.user} (ID: {self.user.id})')
