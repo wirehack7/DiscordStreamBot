@@ -210,9 +210,9 @@ class MyClient(discord.Client):
         if message.author.id == self.user.id:
             self.logging.debug("Don't react to own messages")
             return
-        if self.config['logging']:
+        if self.config['DISCORD']['logging']:
             if message.guild:
-                if message.guild.id == self.config['logging']:
+                if message.guild.id == self.config['DISCORD']['logging']:
                     log_file = f"server_log/{message.guild.name}_messages.txt"
                     logs = await aiofiles.open(log_file, mode='a+')
                     await logs.write(f"[{message.created_at}] {message.channel.name} {message.author}: {message.content}\n")
