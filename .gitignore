@@ -162,3 +162,5 @@ cython_debug/
 # ignore stream picture
 stream_thumb.jpg
 config.ini
+
+server_log/*.txt
