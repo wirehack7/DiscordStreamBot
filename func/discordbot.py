@@ -47,6 +47,9 @@ class MyClient(discord.Client):
             self.streams[stream]['name'] = stream
             self.streams[stream]['id'] = 0
             self.streams[stream]['live'] = False
+            
+        self.queue = asyncio.Queue()
+        self.worker_task = asyncio.create_task(self.worker())
 
 
     async def twitch_get_bearer(self, client_id: str, client_secret: str):
@@ -206,6 +209,13 @@ class MyClient(discord.Client):
                                        self.config['TWITCH']['CLIENT_ID'])
         await self.wait_until_ready()  # wait until the bot logs in
 
+    async def worker(self):
+        while True:
+            message, log_file = await self.queue.get()
+            async with aiofiles.open(log_file, mode='a+') as logs:
+                await logs.write(f"[{message.created_at}] {message.channel.name} {message.author.display_name}({message.author.name}): {message.content}\n")
+            self.queue.task_done()
+
     async def on_message(self, message):
         if message.author.id == self.user.id:
             self.logging.debug("Don't react to own messages")
@@ -214,8 +224,7 @@ class MyClient(discord.Client):
             if message.guild:
                 if message.guild.id == self.config['DISCORD']['logging']:
                     log_file = f"server_log/{message.guild.name}_messages.txt"
-                    logs = await aiofiles.open(log_file, mode='a+')
-                    await logs.write(f"[{message.created_at}] {message.channel.name} {message.author}: {message.content}\n")
+                    await self.queue.put((message, log_file))
 
     async def on_ready(self):
         self.logging.info(f'Logged in as {self.user} (ID: {self.user.id})')
