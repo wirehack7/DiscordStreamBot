@@ -216,8 +216,12 @@ class MyClient(discord.Client):
         while True:
             message, log_file = await self.queue.get()
             async with aiofiles.open(log_file, mode='a+') as logs:
+                if message.attachments:
+                    msg_attachements = " Attachements: "
+                    for attachment in message.attachments:
+                        msg_attachements += f" {attachment.url}"
                 await logs.write(
-                    f"[{message.created_at}] {message.channel.name} {message.author.display_name}({message.author.name}): {message.content}\n"
+                    f"[{message.created_at}] {message.channel.name} {message.author.display_name}({message.author.name}): {message.content}{msg_attachements}\n"
                 )
             self.queue.task_done()
 
