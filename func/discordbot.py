@@ -49,7 +49,13 @@ class MyClient(discord.Client):
             self.streams[stream]['live'] = False
             
         self.queue = asyncio.Queue()
+        self.worker_task = None
+
+    async def setup_hook(self) -> None:
+        # Initialisierung der Hintergrundaufgabe hier verschieben
         self.worker_task = asyncio.create_task(self.worker())
+        # Start der Hintergrundaufgabe für Twitch
+        self.background_twitch.start()
 
 
     async def twitch_get_bearer(self, client_id: str, client_secret: str):
@@ -147,9 +153,6 @@ class MyClient(discord.Client):
             except Exception as e:
                 self.logging.error(f"Couldn't send message: {e}")
 
-    async def setup_hook(self) -> None:
-        # start the task to run in the background
-        self.background_twitch.start()
 
     @tasks.loop(seconds=60)  # task runs every 60 seconds
     async def background_twitch(self):
@@ -213,7 +216,9 @@ class MyClient(discord.Client):
         while True:
             message, log_file = await self.queue.get()
             async with aiofiles.open(log_file, mode='a+') as logs:
-                await logs.write(f"[{message.created_at}] {message.channel.name} {message.author.display_name}({message.author.name}): {message.content}\n")
+                await logs.write(
+                    f"[{message.created_at}] {message.channel.name} {message.author.display_name}({message.author.name}): {message.content}\n"
+                )
             self.queue.task_done()
 
     async def on_message(self, message):
