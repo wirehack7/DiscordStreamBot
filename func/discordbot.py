@@ -216,6 +216,7 @@ class MyClient(discord.Client):
         while True:
             message, log_file = await self.queue.get()
             async with aiofiles.open(log_file, mode='a+') as logs:
+                msg_attachements = ""
                 if message.attachments:
                     msg_attachements = " Attachements: "
                     for attachment in message.attachments:
