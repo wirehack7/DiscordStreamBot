@@ -226,9 +226,9 @@ class MyClient(discord.Client):
             self.logging.debug("Don't react to own messages")
             return
         if self.config['DISCORD']['logging']:
-            self.logging.info("Message sent: %s", message)
+            self.logging.debug("Message sent: %s", message)
             if message.guild:
-                if message.guild.id == self.config['DISCORD']['logging']:
+                if message.guild.id == int(self.config['DISCORD']['logging']):
                     log_file = f"server_log/{message.guild.name}_messages.txt"
                     await self.queue.put((message, log_file))
 
