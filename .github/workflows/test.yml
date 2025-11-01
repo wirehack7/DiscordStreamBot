@@ -3,12 +3,12 @@ name: Test and Validation
 on:
   push:
     branches:
-      - main
-      - develop
+      - master
+      - dev
   pull_request:
     branches:
-      - main
-      - develop
+      - master
+      - dev
   workflow_dispatch:
 
 jobs:
