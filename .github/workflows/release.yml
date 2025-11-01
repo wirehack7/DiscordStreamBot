@@ -1,0 +1,245 @@
+name: Release and Tag
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., v1.0.0)"
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      tag: ${{ steps.get_version.outputs.tag }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version information
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Validate version format
+        run: |
+          if [[ ! "${{ steps.get_version.outputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Version must be in format v1.2.3"
+            exit 1
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for release
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest
+            type=raw,value=stable
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
+      - name: Build and push release Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VERSION=${{ steps.get_version.outputs.version }}
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${LAST_TAG}..HEAD)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --max-count=10)
+          fi
+
+          # Save changelog to file
+          cat > CHANGELOG.tmp << 'EOF'
+          ## 🚀 What's New
+
+          $CHANGELOG
+
+          ## 🐳 Docker Images
+
+          - **Latest**: `ghcr.io/${{ github.repository }}:latest`
+          - **This version**: `ghcr.io/${{ github.repository }}:${{ steps.get_version.outputs.version }}`
+          - **Stable**: `ghcr.io/${{ github.repository }}:stable`
+
+          ## 📦 Installation
+
+          ### Docker (Recommended)
+          ```bash
+          # Pull specific version
+          docker pull ghcr.io/${{ github.repository }}:${{ steps.get_version.outputs.version }}
+
+          # Or pull latest
+          docker pull ghcr.io/${{ github.repository }}:latest
+
+          # Run with docker-compose
+          cd deploy
+          docker-compose up -d
+          ```
+
+          ### Local Installation
+          ```bash
+          # Clone this version
+          git clone --branch ${{ steps.get_version.outputs.version }} https://github.com/${{ github.repository }}.git
+          cd DiscordStreamBot
+
+          # Setup and run
+          python scripts/setup.py install
+          cp config/config.ini.dist config.ini
+          # Edit config.ini with your credentials
+          python src/main.py
+          ```
+
+          ## 🔧 Configuration
+
+          Make sure to update your `config.ini` with the latest template from `config/config.ini.dist`.
+
+          ## 📚 Documentation
+
+          - [README](README.md) - Setup and usage guide
+          - [Docker Usage](README.md#docker) - Docker deployment instructions
+
+          ---
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${LAST_TAG}...${{ steps.get_version.outputs.version }}
+          EOF
+
+          # Replace variables in changelog
+          sed -i "s/\$CHANGELOG/$CHANGELOG/g" CHANGELOG.tmp
+
+          # Set output
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          cat CHANGELOG.tmp >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          name: Release ${{ steps.get_version.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+
+      - name: Security scan release image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: Upload security scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Update Docker Compose files with new version
+        run: |
+          # Update production docker-compose with new version
+          sed -i "s|ghcr.io/.*/discordstreambot:.*|ghcr.io/${{ github.repository }}:${{ steps.get_version.outputs.version }}|g" docker-compose.yml
+
+          # Create a commit with updated files (optional)
+          if git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git add docker-compose.yml
+            git commit -m "Update Docker Compose files to ${{ steps.get_version.outputs.version }}" || exit 0
+            git push origin HEAD:main || exit 0
+          fi
+
+      - name: Generate deployment summary
+        run: |
+          echo "## 🎉 Release ${{ steps.get_version.outputs.version }} Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The release has been successfully created and Docker images have been published." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Docker Images" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ghcr.io/${{ github.repository }}:${{ steps.get_version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ghcr.io/${{ github.repository }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ghcr.io/${{ github.repository }}:stable\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Quick Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ghcr.io/${{ github.repository }}:${{ steps.get_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [Release Notes](https://github.com/${{ github.repository }}/releases/tag/${{ steps.get_version.outputs.version }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [Docker Images](https://github.com/${{ github.repository }}/pkgs/container/discordstreambot)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Documentation](https://github.com/${{ github.repository }}/tree/${{ steps.get_version.outputs.version }}/docs)" >> $GITHUB_STEP_SUMMARY
+
+  notify-success:
+    runs-on: ubuntu-latest
+    needs: create-release
+    if: success()
+
+    steps:
+      - name: Success notification
+        run: |
+          echo "✅ Release ${{ needs.create-release.outputs.version }} completed successfully!"
+          echo "Docker images are available at ghcr.io/${{ github.repository }}"
+
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: create-release
+    if: failure()
+
+    steps:
+      - name: Failure notification
+        run: |
+          echo "❌ Release process failed!"
+          echo "Please check the workflow logs for details."
+          exit 1

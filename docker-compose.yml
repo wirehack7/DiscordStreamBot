@@ -1,0 +1,68 @@
+version: "3.8"
+
+services:
+  discord-stream-bot:
+    # Option 1: Use pre-built image from GitHub Container Registry (recommended for production)
+    image: ghcr.io/yourusername/discordstreambot:latest
+
+    # Option 2: Build locally (uncomment the lines below and comment out the image line above)
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+
+    container_name: discord-stream-bot
+    restart: unless-stopped
+
+    # Volume mounts for configuration and data
+    volumes:
+      - ./config.ini:/app/config.ini:ro
+      - ./data:/app/data:rw
+
+    # Environment variables (optional, can also be set in config.ini)
+    environment:
+      - TZ=Europe/Berlin # Set your timezone
+      - PYTHONUNBUFFERED=1
+
+    # Resource limits (adjust as needed)
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Health check
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os; exit(0 if os.path.exists('/app/data') else 1)",
+        ]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # Network (optional, only if you need custom networking)
+    # networks:
+    #   - bot-network
+# Optional custom network
+# networks:
+#   bot-network:
+#     driver: bridge
+
+# Instructions:
+# 1. Replace 'yourusername' in the image URL above with your GitHub username
+# 2. For local development, comment out the 'image' line and uncomment the 'build' section
+# 3. The image is automatically built and published when you push to the main branch

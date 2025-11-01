@@ -159,8 +159,12 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
-# ignore stream picture
-stream_thumb.jpg
+# Bot configuration
 config.ini
 
-server_log/*.txt
+# Runtime data directory
+data/
+!data/.gitkeep
+
+# Backup: ignore thumbnail files anywhere
+*_thumb.jpg

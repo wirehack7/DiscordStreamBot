@@ -1,5 +1,6 @@
 [DEFAULT]
 LOG_LEVEL       = logging.INFO
+ENABLE_LOGGING  = true
 
 [DISCORD]
 token           =
@@ -7,7 +8,7 @@ channel         =
 message         = :red_circle: {user} ist live!
 leet_channel    =
 leet_user       =
-logging         = 
+logging         = false
 
 [TWITCH]
 client_id       =
