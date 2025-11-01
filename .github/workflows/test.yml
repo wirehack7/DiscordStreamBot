@@ -95,18 +95,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Set up Docker
+        run: |
+          # Enable Docker buildx
+          docker buildx create --use --name builder
+          docker buildx inspect --bootstrap
 
       - name: Test Docker build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          tags: discord-stream-bot:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: |
+          # Build Docker image for testing
+          docker buildx build \
+            --platform linux/amd64 \
+            --tag discord-stream-bot:test \
+            --file ./Dockerfile \
+            --load \
+            .
 
       - name: Test Docker image structure
         run: |
